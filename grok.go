@@ -23,7 +23,7 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 //
 
-//
+// Package grokky is a grok-like patterns library.
 package grokky
 
 // http://play.golang.org/p/vb18r_OZkK
@@ -40,13 +40,13 @@ import (
 var patternRegexp = regexp.MustCompile(`\%\{(\w+)(\:(\w+))?}`)
 
 var (
-	// Empty pattern name
+	// ErrEmptyName arises when pattern name is an empty string
 	ErrEmptyName = errors.New("an empty name")
-	// Empty expression
+	// ErrEmptyExpression arises when expression is an empty string
 	ErrEmptyExpression = errors.New("an empty expression")
-	// Pattern with given name already exists
+	// ErrAlreadyExist arises when pattern with given name alrady exists
 	ErrAlreadyExist = errors.New("the pattern already exist")
-	// Patter with given name does not exists
+	// ErrNotExist arises when pattern with given name doesn't exists
 	ErrNotExist = errors.New("pattern doesn't exist")
 )
 
@@ -72,7 +72,7 @@ func wrap(s string) string { return "(" + s + ")" }
 // are created. Think of it as a kind of factory.
 type Host map[string]string
 
-// New retuns new empty host
+// New returns new empty host
 func New() Host { return make(Host) }
 
 // Add a new pattern to the Host. If pattern with given name
@@ -121,8 +121,7 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 		if err != nil {
 			return nil, err
 		}
-		p := new(Pattern)
-		p.Regexp = *r
+		p := &Pattern{Regexp: *r}
 		return p, nil
 	}
 	// split
@@ -164,8 +163,7 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := new(Pattern)
-	p.Regexp = *r
+	p := &Pattern{Regexp: *r}
 	p.s = msi
 	return p, nil
 }
@@ -204,7 +202,7 @@ func (p *Pattern) Find(input string) map[string]string {
 	return r
 }
 
-// Names retuns all names that this pattern has
+// Names returns all names that this pattern has
 func (p *Pattern) Names() (ss []string) {
 	ss = make([]string, 0, len(p.s))
 	for k := range p.s {

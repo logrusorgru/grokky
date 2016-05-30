@@ -23,16 +23,21 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 //
 
-//
 package grokky
 
 //go test -coverprofile cover.out && go tool cover -html=cover.out -o cover.html
 
 import (
+	"bufio"
+	"io/ioutil"
+	"os"
 	"testing"
 )
 
-const patternsTest = "patterns.test"
+const (
+	patternsTest     = "patterns.test"
+	patternsFailTest = "patterns.fail.test"
+)
 
 func TestNew(t *testing.T) {
 	h := New()
@@ -44,38 +49,59 @@ func TestNew(t *testing.T) {
 	}
 }
 
-func TestHost_Add(t *testing.T) {
-	h := New()
+func testEmptyName(t *testing.T, h Host) {
+	l := len(h)
 	if err := h.Add("", "expr"); err == nil {
 		t.Error("(Host).Add is missing ErrEmptyName")
 	} else if err != ErrEmptyName {
 		t.Error("(Host).Add returns non-ErrEmptyName error")
 	}
-	if len(h) != 0 {
+	if len(h) > l {
 		t.Error("added bad patterns")
 	}
+}
+
+func testEmptyExpression(t *testing.T, h Host) {
+	l := len(h)
 	if err := h.Add("zorro", ""); err == nil {
 		t.Error("(Host).Add is missing ErrEmptyExpression")
 	} else if err != ErrEmptyExpression {
 		t.Error("(Host).Add returns non-ErrEmptyExpression error")
 	}
-	if len(h) != 0 {
+	if len(h) > l {
 		t.Error("added bad patterns")
 	}
+}
+
+func testNormalPattern(t *testing.T, h Host) {
+	l := len(h)
 	if err := h.Add("DIGIT", `\d`); err != nil {
 		t.Errorf("(Host).Add returns non-nil error: %v", err)
 	}
-	if len(h) != 1 {
+	if len(h) != l+1 {
 		t.Error("wrong patterns count")
 	}
+}
+
+// must be invoked direct after testNormalPattern
+func testAlreadyExists(t *testing.T, h Host) {
+	l := len(h)
 	if err := h.Add("DIGIT", `[+-](0x)?\d`); err == nil {
 		t.Error("(Host).Add is missing ErrAlreadyExist")
 	} else if err != ErrAlreadyExist {
 		t.Error("(Host).Add returns non-ErrAlreadyExist error")
 	}
-	if len(h) != 1 {
+	if len(h) != l {
 		t.Error("wrong patterns count")
 	}
+}
+
+func TestHost_Add(t *testing.T) {
+	h := New()
+	testEmptyName(t, h)
+	testEmptyExpression(t, h)
+	testNormalPattern(t, h)
+	testAlreadyExists(t, h)
 	if err := h.Add("BAD", `(?![0-5])`); err == nil {
 		t.Error("(Host).Add is missing any bad-regexp error")
 	}
@@ -114,6 +140,26 @@ func TestHost_Add(t *testing.T) {
 	}
 }
 
+func TestHost_Compile(t *testing.T) {
+	h := New()
+	if _, err := h.Compile(""); err == nil {
+		t.Error("(Host).Compile missing ErrEmptyExpression")
+	} else if err != ErrEmptyExpression {
+		t.Error("(Host).Compile returns non-ErrEmptyExpression error")
+	}
+	if len(h) != 0 {
+		t.Error("(Host).Compile: (bad) pattern added to host")
+	}
+	if p, err := h.Compile(`\d+`); err != nil {
+		t.Error("(Host).Compile error:", err)
+	} else if p == nil {
+		t.Error("(Host).Compile retuns nil (and no errors)")
+	}
+	if len(h) != 0 {
+		t.Error("(Host).Compile: pattern added to host")
+	}
+}
+
 func TestHost_Get(t *testing.T) {
 	h := New()
 	if err := h.Add("DIG", `\d`); err != nil {
@@ -129,6 +175,20 @@ func TestHost_Get(t *testing.T) {
 	} else if p != nil {
 		t.Error("(Host).Get returns non-nil not-exsted-pattern")
 	}
+}
+
+func tempFile(t *testing.T) (name string) {
+	f, err := ioutil.TempFile("", "")
+	if err != nil {
+		t.Skip("unable to create temporary file")
+		return
+	}
+	defer f.Close()
+	if _, err = f.Write(make([]byte, bufio.MaxScanTokenSize+1)); err != nil {
+		t.Skip("unable to write to temporary file")
+		return
+	}
+	return f.Name()
 }
 
 func TestHost_AddFromFile(t *testing.T) {
@@ -147,6 +207,23 @@ func TestHost_AddFromFile(t *testing.T) {
 	}
 	if _, err := h.Get("THREE"); err != nil {
 		t.Error(err)
+	}
+}
+
+func TestHost_AddFromFile_malformedPatterns(t *testing.T) {
+	h := New()
+	if err := h.AddFromFile(patternsFailTest); err == nil {
+		t.Error("(Host).AddFromFile (should fail): missing error")
+	}
+}
+
+func TestHost_AddFromFile_scannerError(t *testing.T) {
+	h := New()
+	name := tempFile(t)
+	t.Log("create tmporary file:", name)
+	defer os.Remove(name)
+	if err := h.AddFromFile(name); err == nil {
+		t.Error("(Host).AddFromFile (should fail): missing error")
 	}
 }
 

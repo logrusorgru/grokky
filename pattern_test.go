@@ -23,45 +23,59 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 //
 
-//
 package grokky
 
 import (
 	"testing"
 )
 
+func terr(t *testing.T, err error) {
+	if err != nil {
+		t.Error(err)
+	}
+}
+
+func mssTest(expect, got map[string]string) bool {
+	if len(expect) != len(got) {
+		return false
+	}
+	for k, v := range expect {
+		if v != got[k] {
+			return false
+		}
+	}
+	return true
+}
+
 func TestPattern_Find(t *testing.T) {
 	h := New()
-	if err := h.Add("ONE", `\d`); err != nil {
-		t.Error(err)
-	}
-	if err := h.Add("TWO", `%{ONE:one}-%{ONE:two}`); err != nil {
-		t.Error(err)
-	}
-	if err := h.Add("THREE", `%{ONE:zero}-%{TWO:three}`); err != nil {
-		t.Error(err)
-	}
+	// compile
+	terr(t, h.Add("ONE", `\d`))
+	terr(t, h.Add("TWO", `%{ONE:one}-%{ONE:two}`))
+	terr(t, h.Add("THREE", `%{ONE:zero}-%{TWO:three}`))
+	//
 	if p, err := h.Get("ONE"); err != nil {
 		t.Error(err)
-	} else if mss := p.Find("1"); len(mss) != 0 {
+	} else if !mssTest(nil, p.Find("1")) {
 		t.Error("unnamed result")
 	}
 	p, err := h.Get("TWO")
 	if err != nil {
 		t.Error(err)
 	}
-	mss := p.Find("1-2")
-	if len(mss) != 2 || mss["one"] != "1" || mss["two"] != "2" {
+	if !mssTest(map[string]string{"one": "1", "two": "2"}, p.Find("1-2")) {
 		t.Error("bad result")
 	}
 	p, err = h.Get("THREE")
 	if err != nil {
 		t.Error(err)
 	}
-	mss = p.Find("0-1-2")
-	if len(mss) != 4 ||
-		mss["one"] != "1" || mss["two"] != "2" ||
-		mss["zero"] != "0" || mss["three"] != "1-2" {
+	if !mssTest(map[string]string{
+		"one":   "1",
+		"two":   "2",
+		"zero":  "0",
+		"three": "1-2",
+	}, p.Find("0-1-2")) {
 		t.Error("bad result")
 	}
 	if err := h.Add("FOUR", `%{TWO:two}`); err != nil {
@@ -71,10 +85,7 @@ func TestPattern_Find(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	mss = p.Find("1-2")
-	if len(mss) != 2 ||
-		mss["one"] != "1" ||
-		mss["two"] != "1-2" {
+	if !mssTest(map[string]string{"one": "1", "two": "1-2"}, p.Find("1-2")) {
 		t.Error("bad result")
 	}
 }

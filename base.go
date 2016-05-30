@@ -23,7 +23,6 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 //
 
-//
 package grokky
 
 func must(err error) {
