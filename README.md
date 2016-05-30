@@ -5,6 +5,7 @@
 [![Build Status](https://travis-ci.org/logrusorgru/grokky.svg)](https://travis-ci.org/logrusorgru/grokky)
 [![Coverage Status](https://coveralls.io/repos/logrusorgru/grokky/badge.svg?branch=master)](https://coveralls.io/r/logrusorgru/grokky?branch=master)
 [![GoReportCard](http://goreportcard.com/badge/logrusorgru/grokky)](http://goreportcard.com/report/logrusorgru/grokky)
+[![paypal donate](https://img.shields.io/badge/paypal%20%24-donate-orange.svg)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=G8BMK885XNB7C)
 
 Package grokky is a pure Golang Grok-like patterns library. This can
 help you to parse log files and other. This is based on
