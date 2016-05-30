@@ -35,8 +35,8 @@ import (
 )
 
 const (
-	patternsTest     = "patterns.test"
-	patternsFailTest = "patterns.fail.test"
+	patternsTest     = "patterns_pass.txt"
+	patternsFailTest = "patterns_fail.txt"
 )
 
 func TestNew(t *testing.T) {
