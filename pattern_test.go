@@ -47,7 +47,7 @@ func mssTest(expect, got map[string]string) bool {
 	return true
 }
 
-func TestPattern_Find(t *testing.T) {
+func TestPattern_Parse(t *testing.T) {
 	h := New()
 	// compile
 	terr(t, h.Add("ONE", `\d`))
@@ -56,14 +56,14 @@ func TestPattern_Find(t *testing.T) {
 	//
 	if p, err := h.Get("ONE"); err != nil {
 		t.Error(err)
-	} else if !mssTest(nil, p.Find("1")) {
+	} else if !mssTest(nil, p.Parse("1")) {
 		t.Error("unnamed result")
 	}
 	p, err := h.Get("TWO")
 	if err != nil {
 		t.Error(err)
 	}
-	if !mssTest(map[string]string{"one": "1", "two": "2"}, p.Find("1-2")) {
+	if !mssTest(map[string]string{"one": "1", "two": "2"}, p.Parse("1-2")) {
 		t.Error("bad result")
 	}
 	p, err = h.Get("THREE")
@@ -75,7 +75,7 @@ func TestPattern_Find(t *testing.T) {
 		"two":   "2",
 		"zero":  "0",
 		"three": "1-2",
-	}, p.Find("0-1-2")) {
+	}, p.Parse("0-1-2")) {
 		t.Error("bad result")
 	}
 	if err := h.Add("FOUR", `%{TWO:two}`); err != nil {
@@ -85,7 +85,7 @@ func TestPattern_Find(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if !mssTest(map[string]string{"one": "1", "two": "1-2"}, p.Find("1-2")) {
+	if !mssTest(map[string]string{"one": "1", "two": "1-2"}, p.Parse("1-2")) {
 		t.Error("bad result")
 	}
 }
@@ -102,13 +102,13 @@ func TestPattern_nestedGroups(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	mss := p.Find("1-2")
+	mss := p.Parse("1-2")
 	if len(mss) != 2 ||
 		mss["one"] != "1" ||
 		mss["two"] != "2" {
 		t.Error("bad result")
 	}
-	mss = p.Find("1-")
+	mss = p.Parse("1-")
 	if len(mss) != 2 ||
 		mss["one"] != "1" ||
 		mss["two"] != "" {

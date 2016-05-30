@@ -23,7 +23,12 @@
 //  0. You just DO WHAT THE FUCK YOU WANT TO.
 //
 
-// Package grokky is a grok-like patterns library.
+// Package grokky is a pure Golang Grok-like patterns library. This can
+// help you to parse log files and other. This is based on RE2 regexp
+// that much more faster then Oniguruma. The library disigned for creating
+// many patterns and using it many times. The behavior and capabilities
+// are slightly different from the original library. The golas of the
+// library are: (1) simplicity, (2) performance, (3) ease of use.
 package grokky
 
 // http://play.golang.org/p/vb18r_OZkK
@@ -181,16 +186,15 @@ func (h Host) Compile(expr string) (*Pattern, error) {
 	return h.compileExternal(expr)
 }
 
-// Pattern is pattern.
+// Pattern is a pattern.
 // Feel free to use the Pattern as regexp.Regexp.
-// The Find method has different behavior.
 type Pattern struct {
 	regexp.Regexp
 	s map[string]int
 }
 
-// Find returns map (name->match) on input. The map can be empty.
-func (p *Pattern) Find(input string) map[string]string {
+// Parse returns map (name->match) on input. The map can be empty.
+func (p *Pattern) Parse(input string) map[string]string {
 	ss := p.FindStringSubmatch(input)
 	r := make(map[string]string)
 	if len(ss) <= 1 {

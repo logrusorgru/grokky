@@ -64,7 +64,7 @@ func Test_ngaccess(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	mss := p.Find(line)
+	mss := p.Parse(line)
 	if len(mss) == 0 {
 		t.Error("nginx access not matched")
 	}
