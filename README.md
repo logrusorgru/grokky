@@ -8,40 +8,46 @@
 [![Gitter](https://img.shields.io/badge/chat-on_gitter-46bc99.svg?logo=data:image%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIGhlaWdodD0iMTQiIHdpZHRoPSIxNCI%2BPGcgZmlsbD0iI2ZmZiI%2BPHJlY3QgeD0iMCIgeT0iMyIgd2lkdGg9IjEiIGhlaWdodD0iNSIvPjxyZWN0IHg9IjIiIHk9IjQiIHdpZHRoPSIxIiBoZWlnaHQ9IjciLz48cmVjdCB4PSI0IiB5PSI0IiB3aWR0aD0iMSIgaGVpZ2h0PSI3Ii8%2BPHJlY3QgeD0iNiIgeT0iNCIgd2lkdGg9IjEiIGhlaWdodD0iNCIvPjwvZz48L3N2Zz4%3D&logoWidth=10)](https://gitter.im/logrusorgru/grokky?utm_source=share-link&utm_medium=link&utm_campaign=share-link) | 
 [![paypal gratuity](https://img.shields.io/badge/paypal-gratuity-3480a1.svg?logo=data:image%2Fsvg%2Bxml%3Bbase64%2CPHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMDAwIDEwMDAiPjxwYXRoIGZpbGw9InJnYigyMjAsMjIwLDIyMCkiIGQ9Ik04ODYuNiwzMDUuM2MtNDUuNywyMDMuMS0xODcsMzEwLjMtNDA5LjYsMzEwLjNoLTc0LjFsLTUxLjUsMzI2LjloLTYybC0zLjIsMjEuMWMtMi4xLDE0LDguNiwyNi40LDIyLjYsMjYuNGgxNTguNWMxOC44LDAsMzQuNy0xMy42LDM3LjctMzIuMmwxLjUtOGwyOS45LTE4OS4zbDEuOS0xMC4zYzIuOS0xOC42LDE4LjktMzIuMiwzNy43LTMyLjJoMjMuNWMxNTMuNSwwLDI3My43LTYyLjQsMzA4LjktMjQyLjdDOTIxLjYsNDA2LjgsOTE2LjcsMzQ4LjYsODg2LjYsMzA1LjN6Ii8%2BPHBhdGggZmlsbD0icmdiKDIyMCwyMjAsMjIwKSIgZD0iTTc5MS45LDgzLjlDNzQ2LjUsMzIuMiw2NjQuNCwxMCw1NTkuNSwxMEgyNTVjLTIxLjQsMC0zOS44LDE1LjUtNDMuMSwzNi44TDg1LDg1MWMtMi41LDE1LjksOS44LDMwLjIsMjUuOCwzMC4ySDI5OWw0Ny4zLTI5OS42bC0xLjUsOS40YzMuMi0yMS4zLDIxLjQtMzYuOCw0Mi45LTM2LjhINDc3YzE3NS41LDAsMzEzLTcxLjIsMzUzLjItMjc3LjVjMS4yLTYuMSwyLjMtMTIuMSwzLjEtMTcuOEM4NDUuMSwxODIuOCw4MzMuMiwxMzAuOCw3OTEuOSw4My45TDc5MS45LDgzLjl6Ii8%2BPC9zdmc%2B)](https://www.paypal.me/kostyarin)
 
-Package grokky is a pure Golang Grok-like patterns library. This can
+Package grokky is a pure Golang Grok-like patterns library, which can
 help you to parse log files and other. This is based on
 [RE2](https://en.wikipedia.org/wiki/RE2_%28software%29)
 regexp that
 [much more faster](https://swtch.com/~rsc/regexp/regexp1.html)
-then
+than
 [Oniguruma](https://en.wikipedia.org/wiki/Oniguruma).
-The library disigned for creating
-many patterns and using it many times. The behavior and capabilities
-are slightly different from the original library. The golas of the
-library are: (1) simplicity, (2) performance, (3) ease of use.
+
+The library was disigned for creating many patterns and using it many
+times. The behavior and capabilities are slightly different from the
+original library. The goals of the library are:
+1. simplicity,
+2. fast,
+3. ease of use.
 
 # Also
 
-See also another golang implementation: [vjeantet/grok](https://github.com/vjeantet/grok). This implementation is closer to the original library.
+See also another golang implementation:
+[vjeantet/grok](https://github.com/vjeantet/grok). This implementation
+is closer to the original library.
 
 The difference:
 
-1. The grokky allows named captures only. Any name of a pattern is just
-  name of a pattern and nothing more. You can treat is as an alias
-  for regexp. It's impossible to use a name of a pattern as a capture group.
-  In some cases the grooky is similar to the grok that created as
-  `g, err := grok.NewWithConfig(&grok.Config{NamedCapturesOnly:   true})`
-  But.
+1. The grokky allows named captures only. Any name of a pattern is
+  just name of a pattern and nothing more. You can treat is as an
+  alias for regexp. It's impossible to use a name of a pattern as a
+  capture group.  In some cases the grooky is similar to the grok that
+  created as `g, err :=
+  grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})`.
 
 2. The grokky prefered top named group. Unfortunately it is very
-  difficult to explain what it means. If you have two patterns. The second
-  pattern has same named group and nested into first. Then the named group of
-  the first pattern will be used. The grok uses last (closer to tail) group
-  in any cases. But the grok also has `ParseToMultiMap` method. To see the
-  difference explanation get the package and run following command
-  `go test -v -run the_difference github.com/logrusorgru/grokky`
+  difficult to explain what it means. If you have two patterns. The
+  second pattern has same named group and nested into first. Then the
+  named group of the first pattern will be used. The grok uses last
+  (closer to tail) group in any cases. But the grok also has
+  `ParseToMultiMap` method. To see the difference explanation get the
+  package and run following command `go test -v -run the_difference
+  github.com/logrusorgru/grokky`
 
-3. The grokky designed as a factory of patterns.
+3. The grokky was designed as a factory of patterns.
 
 # Get it
 
