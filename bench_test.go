@@ -31,12 +31,23 @@ import (
 	"testing"
 )
 
+// Intel Core i5-6200U
+// DDR4 8G 2133 MHz
+// Linux Ubuntu 17.04 4.12.4-041204-generic
+//
+// go test -bench . -benchtime=1m
+//
+// Benchmark_logrusorgru_grokky_rfc3339-4    30000000    3201 ns/op  1297 B/op  5 allocs/op
+// Benchmark_vjeantet_grok_rfc3339-4         30000000    2967 ns/op  1329 B/op  5 allocs/op
+// Benchmark_grokkyVsGrokApacheLog/grokky-4    200000  447480 ns/op  5098 B/op  6 allocs/op
+// Benchmark_grokkyVsGrokApacheLog/grok-4      200000  473763 ns/op  5609 B/op  6 allocs/op
+// PASS
+// ok      github.com/logrusorgru/grokky   385.076s
+
 // RFC3339     = "2006-01-02T15:04:05Z07:00"
 const testee = "2006-01-02T15:04:05Z07:00"
 
 var global map[string]string
-
-type _parse func(string, string) (map[string]string, error)
 
 // find:
 // tz, date, year, month, day, time, hour, min, sec
@@ -76,35 +87,41 @@ func berr(b *testing.B, err error) {
 // find:
 // tz, date, year, month, day, time, hour, min, sec
 func Benchmark_vjeantet_grok_rfc3339(b *testing.B) {
+
 	b.StopTimer()
+
 	h, err := grok.NewWithConfig(&grok.Config{
 		SkipDefaultPatterns: true,
 		NamedCapturesOnly:   true,
 	})
 	if err != nil {
-		b.Error("error creating vjeantet/grok:", err)
-		b.SkipNow()
+		b.Skip("error creating vjeantet/grok:", err)
 	}
-	//
-	berr(b, h.AddPattern("YEAR", `(?:\d\d){1,2}`))
-	berr(b, h.AddPattern("MONTHNUM2", `0[1-9]|1[0-2]`))
-	berr(b,
-		h.AddPattern("MONTHDAY", `(?:0[1-9])|(?:[12][0-9])|(?:3[01])|[1-9]`))
-	berr(b, h.AddPattern("HOUR", `2[0123]|[01]?[0-9]`))
-	berr(b, h.AddPattern("MINUTE", `[0-5][0-9]`))
-	berr(b, h.AddPattern("SECOND", `(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?`))
-	berr(b, h.AddPattern("TIMEZONE", `Z%{HOUR}:%{MINUTE}`))
-	//
-	berr(b,
-		h.AddPattern("DATE", "%{YEAR:year}-%{MONTHNUM2:month}-%{MONTHDAY:day}"))
-	berr(b, h.AddPattern("TIME", "%{HOUR:hour}:%{MINUTE:min}:%{SECOND:sec}"))
-	// the pattern
-	berr(b,
-		h.AddPattern("MAIN", "%{DATE:date}T%{TIME:time}%{TIMEZONE:tz}"))
+
+	for _, np := range []struct{ name, pattern string }{
+		{"YEAR", `(?:\d\d){1,2}`},
+		{"MONTHNUM2", `0[1-9]|1[0-2]`},
+		{"MONTHDAY", `(?:0[1-9])|(?:[12][0-9])|(?:3[01])|[1-9]`},
+		{"HOUR", `2[0123]|[01]?[0-9]`},
+		{"MINUTE", `[0-5][0-9]`},
+		{"SECOND", `(?:[0-5]?[0-9]|60)(?:[:.,][0-9]+)?`},
+		{"TIMEZONE", `Z%{HOUR}:%{MINUTE}`},
+		//
+		{"DATE", "%{YEAR:year}-%{MONTHNUM2:month}-%{MONTHDAY:day}"},
+		{"TIME", "%{HOUR:hour}:%{MINUTE:min}:%{SECOND:sec}"},
+		// the pattern
+		{"MAIN", "%{DATE:date}T%{TIME:time}%{TIMEZONE:tz}"},
+	} {
+		if err = h.AddPattern(np.name, np.pattern); err != nil {
+			b.Skip("error adding pattern:", err)
+		}
+	}
+
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		mss, _ := h.Parse("%{MAIN}", testee)
-		global = mss
+		if global, err = h.Parse("%{MAIN}", testee); err != nil {
+			b.Skip("parsing error:", err)
+		}
 	}
 	b.ReportAllocs()
 }
@@ -112,12 +129,13 @@ func Benchmark_vjeantet_grok_rfc3339(b *testing.B) {
 // go test -v -run the_difference
 
 func Test_the_difference(t *testing.T) {
-	t.Logf(`show the difference between logrusorgru/grokky and vjeantet/grok
-pattern '%s{NUM:one} %s{NUMBERS}'
-  where NUMBERS is '%s{NUM:one} %s{NUM:two}'
+	t.Log(`show the difference between logrusorgru/grokky and vjeantet/grok
+pattern '%%{NUM:one} %%{NUMBERS}'
+  where NUMBERS is '%%{NUM:one} %%{NUM:two}'
     and NUM     is '\d' (single number)
-Input is: '1 2 3'`, "%", "%", "%", "%") // <- go vet (stupid things happens)
-	{
+Input is: '1 2 3'`)
+
+	t.Run("logrusorgru/grokky", func(t *testing.T) {
 		h := New()
 		h.Add("NUM", `\d`)
 		h.Add("NUMBERS", "%{NUM:one} %{NUM:two}")
@@ -126,15 +144,16 @@ Input is: '1 2 3'`, "%", "%", "%", "%") // <- go vet (stupid things happens)
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Log("logrusorgru/grokky:", p.Parse("1 2 3"))
-	}
-	{
+		t.Log("result is:", p.Parse("1 2 3"))
+	})
+
+	t.Run("vjeantet/grok", func(t *testing.T) {
 		h, err := grok.NewWithConfig(&grok.Config{
 			NamedCapturesOnly:   true,
 			SkipDefaultPatterns: true,
 		})
 		if err != nil {
-			t.Fatal(err)
+			t.Skip("error:", err)
 		}
 		h.AddPattern("NUM", `\d`)
 		h.AddPattern("NUMBERS", "%{NUM:one} %{NUM:two}")
@@ -143,15 +162,20 @@ Input is: '1 2 3'`, "%", "%", "%", "%") // <- go vet (stupid things happens)
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Log("vjeantet/grok:", mss)
-	}
+		t.Log("result is:", mss)
+	})
+
 }
 
-var _grokkyParse = func() _parse {
+type testParseFunc func(string, string) (map[string]string, error)
+
+var testGrokkyParse = func() testParseFunc {
+
 	type Pair struct {
-		Key   string
-		Value string
+		Name    string
+		Pattern string
 	}
+
 	patterns := []Pair{
 		{"LOGLEVEL", `([Aa]lert|ALERT|[Tt]race|TRACE|[Dd]ebug|DEBUG|[Nn]otice|NOTICE|[Ii]nfo|INFO|[Ww]arn?(?:ing)?|WARN?(?:ING)?|[Ee]rr?(?:or)?|ERR?(?:OR)?|[Cc]rit?(?:ical)?|CRIT?(?:ICAL)?|[Ff]atal|FATAL|[Ss]evere|SEVERE|EMERG(?:ENCY)?|[Ee]merg(?:ency)?)`},
 		{"USERNAME", `[a-zA-Z0-9._-]+`},
@@ -230,37 +254,52 @@ var _grokkyParse = func() _parse {
 		{"HTTPD24_ERRORLOG", `\[%{HTTPDERROR_DATE:timestamp}\] \[%{WORD:module}:%{LOGLEVEL:loglevel}\] \[pid %{POSINT:pid}:tid %{NUMBER:tid}\]( \(%{POSINT:proxy_errorcode}\)%{DATA:proxy_errormessage}:)?( \[client %{IPORHOST:client}:%{POSINT:clientport}\])? %{DATA:errorcode}: %{GREEDYDATA:message}`},
 		{"HTTPD_ERRORLOG", `%{HTTPD20_ERRORLOG}|%{HTTPD24_ERRORLOG}`},
 	}
+
 	h := New()
 	for _, p := range patterns {
-		h.Add(p.Key, p.Value)
+		h.Add(p.Name, p.Pattern)
 	}
+
 	p, _ := h.Get("COMBINEDAPACHELOG")
 	return func(name string, input string) (m map[string]string, err error) {
 		m = p.Parse(input)
 		return
 	}
+
 }()
 
-var _grokParse = func() _parse {
+var testGrokParse = func() testParseFunc {
 	g, _ := grok.NewWithConfig(&grok.Config{
 		NamedCapturesOnly: true,
 	})
 	return g.Parse
 }()
 
-func BenchmarkGrokkyVsGrokApacheLog(b *testing.B) {
-	for n, p := range map[string]_parse{"grokky": _grokkyParse, "grok": _grokParse} {
-		b.Run(n, func(b *testing.B) {
+func Benchmark_grokkyVsGrokApacheLog(b *testing.B) {
+
+	for _, np := range []struct {
+		name      string
+		parseFunc testParseFunc
+	}{
+		{"grokky", testGrokkyParse},
+		{"grok", testGrokParse},
+	} {
+
+		b.Run(np.name, func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				m, err := p("%{COMBINEDAPACHELOG}", `127.0.0.1 - - [02/Aug/2017:22:58:13 +0800] "GET / HTTP/1.1" 200 612 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:52.0) Gecko/20100101 Firefox/52.0" "-"`)
+				m, err := np.parseFunc("%{COMBINEDAPACHELOG}", `127.0.0.1 - - [02/Aug/2017:22:58:13 +0800] "GET / HTTP/1.1" 200 612 "-" "Mozilla/5.0 (Macintosh; Intel Mac OS X 10.12; rv:52.0) Gecko/20100101 Firefox/52.0" "-"`)
 				if len(m) == 0 {
 					b.Fatal(err)
 				}
-				m, err = p("%{COMBINEDAPACHELOG}", `....`)
+				m, err = np.parseFunc("%{COMBINEDAPACHELOG}", `....`)
 				if len(m) != 0 {
 					b.Fatal(err, m)
 				}
 			}
+
+			b.ReportAllocs()
 		})
+
 	}
+
 }
