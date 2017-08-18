@@ -312,8 +312,8 @@ func Benchmark_grokkyVsGrokApacheLog(b *testing.B) {
 // PASS
 // ok      github.com/logrusorgru/grokky   107.686s
 
-// so a second is 1*1000*1000*1000, thus 26505ns/op is 37728op/s
-// where  op is 3 lines (~ 113184op/s)
+// so, a second is 1*1000*1000*1000, thus 26505ns/op is 37728op/s,
+// where op is 3 lines (~ 113184op/s)
 
 func Benchmark_simpleNginxAccessLog(b *testing.B) {
 
