@@ -153,7 +153,7 @@ func TestHost_Compile(t *testing.T) {
 	if p, err := h.Compile(`\d+`); err != nil {
 		t.Error("(Host).Compile error:", err)
 	} else if p == nil {
-		t.Error("(Host).Compile retuns nil (and no errors)")
+		t.Error("(Host).Compile returns nil (and no errors)")
 	}
 	if len(h) != 0 {
 		t.Error("(Host).Compile: pattern added to host")
