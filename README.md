@@ -115,6 +115,42 @@ func main() {
 
 ```
 
+# Performance note
+
+Don't complicate regular expressions. Use simplest regular expressions possible.
+Here is example about Nginx access log, combined format:
+
+```go
+h := New()
+
+h.Must("NSS", `[^\s]*`) // not a space *
+h.Must("NS", `[^\s]+`)  // not a space +
+h.Must("NLB", `[^\]]+`) // not a left bracket +
+h.Must("NQS", `[^"]*`)  // not a double quotes *
+h.Must("NQ", `[^"]+`)   // not a double quotes +
+
+h.Must("nginx", `%{NS:remote_addr}\s\-\s`+
+	`%{NSS:remote_user}\s*\-\s\[`+
+	`%{NLB:time_local}\]\s\"`+
+	`%{NQ:request}\"\s`+
+	`%{NS:status}\s`+
+	`%{NS:body_bytes_sent}\s\"`+
+	`%{NQ:http_referer}\"\s\"`+
+	`%{NQ:user_agent}\"`)
+
+nginx, err := h.Get("nginx")
+if err != nil {
+	b.Fatal(err)
+}
+
+for logLine := range catLogFileLineByLineChannel {
+	values := nginx.Parse(logLine)
+
+	// stuff
+
+}
+```
+
 # Licensing
 
 Copyright © 2016-2017 Konstantin Ivanov <kostyarin.ivanov@gmail.com>  
