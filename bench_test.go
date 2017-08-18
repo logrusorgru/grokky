@@ -304,6 +304,17 @@ func Benchmark_grokkyVsGrokApacheLog(b *testing.B) {
 
 }
 
+// one cycle is 3 log lines
+// ------------------------
+//
+// $ go test -bench simpleNginxAccessLog -benchtime=1m
+// Benchmark_simpleNginxAccessLog-4  3000000  26505 ns/op  1872 B/op  12 allocs/op
+// PASS
+// ok      github.com/logrusorgru/grokky   107.686s
+
+// so a second is 1*1000*1000*1000, thus 26505ns/op is 37728op/s
+// where  op is 3 lines (~ 113184op/s)
+
 func Benchmark_simpleNginxAccessLog(b *testing.B) {
 
 	// https://play.golang.org/p/XKtY84Uicf
