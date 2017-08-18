@@ -331,14 +331,18 @@ func Benchmark_simpleNginxAccessLog(b *testing.B) {
 	h.Must("NLB", `[^\]]+`) // not a left bracket +
 	h.Must("NQS", `[^"]*`)  // not a quote *
 	h.Must("NQ", `[^"]+`)   // not a double quotes +
-	h.Must("nginx", `%{NS:remote_addr}\s\-\s`+
-		`%{NSS:remote_user}\s*\-\s\[`+
-		`%{NLB:time_local}\]\s\"`+
-		`%{NQ:request}\"\s`+
-		`%{NS:status}\s`+
-		`%{NS:body_bytes_sent}\s\"`+
-		`%{NQ:http_referer}\"\s\"`+
-		`%{NQ:user_agent}\"`)
+	h.Must("A", `.*`)       // all
+	h.Must("nginx", `%{NS:clientip}\s%{NSS:ident}\s%{NSS:auth}`+
+		`\s\[`+
+		`%{NLB:timestamp}\]\s\"`+
+		`%{NS:verb}\s`+
+		`%{NSS:request}\s`+
+		`HTTP/%{NS:httpversion}\"\s`+
+		`%{NS:response}\s`+
+		`%{NS:bytes}\s\"`+
+		`%{NQ:referrer}\"\s\"`+
+		`%{NQ:agent}\"`+
+		`%{A:blob}`)
 
 	nginx, err := h.Get("nginx")
 	if err != nil {
@@ -370,6 +374,9 @@ func Benchmark_simpleNginxAccessLog(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		for _, input := range lines {
 			global = nginx.Parse(input)
+			if len(global) != 12 {
+				b.Fatal(global)
+			}
 		}
 	}
 
