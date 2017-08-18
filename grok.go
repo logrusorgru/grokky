@@ -126,7 +126,7 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 		if err != nil {
 			return nil, err
 		}
-		p := &Pattern{Regexp: *r}
+		p := &Pattern{Regexp: r}
 		return p, nil
 	}
 	// split
@@ -168,7 +168,7 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Pattern{Regexp: *r}
+	p := &Pattern{Regexp: r}
 	p.s = msi
 	return p, nil
 }
@@ -189,7 +189,7 @@ func (h Host) Compile(expr string) (*Pattern, error) {
 // Pattern is a pattern.
 // Feel free to use the Pattern as regexp.Regexp.
 type Pattern struct {
-	regexp.Regexp
+	*regexp.Regexp
 	s map[string]int
 }
 

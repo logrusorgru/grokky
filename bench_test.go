@@ -130,8 +130,8 @@ func Benchmark_vjeantet_grok_rfc3339(b *testing.B) {
 
 func Test_the_difference(t *testing.T) {
 	t.Log(`show the difference between logrusorgru/grokky and vjeantet/grok
-pattern '%%{NUM:one} %%{NUMBERS}'
-  where NUMBERS is '%%{NUM:one} %%{NUM:two}'
+pattern '%{NUM:one} %{NUMBERS}'
+  where NUMBERS is '%{NUM:one} %{NUM:two}'
     and NUM     is '\d' (single number)
 Input is: '1 2 3'`)
 
