@@ -315,6 +315,11 @@ func Benchmark_grokkyVsGrokApacheLog(b *testing.B) {
 // so, a second is 1*1000*1000*1000, thus 26505ns/op is 37728op/s,
 // where op is 3 lines (~ 113184op/s)
 
+// after #3
+// Benchmark_simpleNginxAccessLog-4  10000000  9895 ns/op  1370 B/op  5 allocs/op
+
+// where op is _one_ line
+
 func Benchmark_simpleNginxAccessLog(b *testing.B) {
 
 	// https://play.golang.org/p/XKtY84Uicf
@@ -372,11 +377,9 @@ func Benchmark_simpleNginxAccessLog(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		for _, input := range lines {
-			global = nginx.Parse(input)
-			if len(global) != 12 {
-				b.Fatal(global)
-			}
+		global = nginx.Parse(lines[i%len(lines)])
+		if len(global) != 12 {
+			b.Fatal(global)
 		}
 	}
 

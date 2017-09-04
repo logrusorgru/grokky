@@ -126,8 +126,8 @@ h := New()
 h.Must("NSS", `[^\s]*`) // not a space *
 h.Must("NS", `[^\s]+`)  // not a space +
 h.Must("NLB", `[^\]]+`) // not a left bracket +
-h.Must("NQS", `[^"]*`)  // not a double quotes *
-h.Must("NQ", `[^"]+`)   // not a double quotes +
+h.Must("NQS", `[^"]*`)  // not a double quote *
+h.Must("NQ", `[^"]+`)   // not a double quote +
 
 h.Must("nginx", `%{NS:remote_addr}\s\-\s`+
 	`%{NSS:remote_user}\s*\-\s\[`+
@@ -140,7 +140,7 @@ h.Must("nginx", `%{NS:remote_addr}\s\-\s`+
 
 nginx, err := h.Get("nginx")
 if err != nil {
-	b.Fatal(err)
+	panic(err)
 }
 
 for logLine := range catLogFileLineByLineChannel {
@@ -149,6 +149,33 @@ for logLine := range catLogFileLineByLineChannel {
 	// stuff
 
 }
+```
+
+or there is a version (thanks for @nanjj)
+
+```go
+h := New()
+
+h.Must("NSS", `[^\s]*`) // not a space *
+h.Must("NS", `[^\s]+`)  // not a space +
+h.Must("NLB", `[^\]]+`) // not a left bracket +
+h.Must("NQS", `[^"]*`)  // not a double quote *
+h.Must("NQ", `[^"]+`)   // not a double quote +
+h.Must("A", `.*`)       // all (get tail)
+
+h.Must("nginx", `%{NS:clientip}\s%{NSS:ident}\s%{NSS:auth}`+
+	`\s\[`+
+	`%{NLB:timestamp}\]\s\"`+
+	`%{NS:verb}\s`+
+	`%{NSS:request}\s`+
+	`HTTP/%{NS:httpversion}\"\s`+
+	`%{NS:response}\s`+
+	`%{NS:bytes}\s\"`+
+	`%{NQ:referrer}\"\s\"`+
+	`%{NQ:agent}\"`+
+	`%{A:blob}`)
+
+// [...]
 ```
 
 # Licensing
