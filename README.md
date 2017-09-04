@@ -151,7 +151,7 @@ for logLine := range catLogFileLineByLineChannel {
 }
 ```
 
-or there is a version (thanks for @nanjj)
+or there is a version (thanks for __@nanjj__)
 
 ```go
 h := New()
