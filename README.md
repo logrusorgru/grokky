@@ -47,7 +47,7 @@ The difference:
   `ParseToMultiMap` method. To see the difference explanation get the
   package (using `go get -t`) and run the following command
   `go test -v -run the_difference github.com/logrusorgru/grokky`. Or check
-  out [source code of the test](https://github.com/logrusorgru/grokky/blob/master/bench_test.go#L131).
+  out [source code of the test](https://github.com/logrusorgru/grokky/blob/master/bench_test.go#L134).
 
 3. The grokky was designed as a factory of patterns. E.g. compile once and use
   many times.
@@ -179,6 +179,28 @@ h.Must("nginx", `%{NS:clientip}\s%{NSS:ident}\s%{NSS:auth}`+
 	`%{A:blob}`)
 
 // [...]
+```
+
+## More performance
+
+Since the
+[`grokky.Pattern`](https://godoc.org/github.com/logrusorgru/grokky#Pattern)
+inherits [`regexp.Regexp`](https://godoc.org/regexp#Regexp), it's possible
+to use methods of the `regexp.Regexp`. E.g. you can to use
+[`FindStringSubmatch`](https://godoc.org/regexp#Regexp.FindStringSubmatch)
+for example instead of `(grokky.Pattern).Parse`. Or any other method of
+the `regexp.Regexp`.
+
+Check out
+[Benchmark_parse_vs_findStringSubmatch](https://github.com/logrusorgru/grokky/blob/master/bench_test.go#409)
+for example.
+
+For my machine result of this becnhmark is (the map is `Parse`, and the slice is
+`FindStringSubmatch`)
+
+```
+map-4      200000    9980 ns/op    1370 B/op    5 allocs/op
+slice-4    200000    7508 ns/op     416 B/op    2 allocs/op
 ```
 
 # Licensing

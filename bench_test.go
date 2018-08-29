@@ -26,9 +26,9 @@
 package grokky
 
 import (
-	"github.com/vjeantet/grok"
-
 	"testing"
+
+	"github.com/vjeantet/grok"
 )
 
 // Intel Core i5-6200U
@@ -45,9 +45,12 @@ import (
 // ok      github.com/logrusorgru/grokky   385.076s
 
 // RFC3339     = "2006-01-02T15:04:05Z07:00"
-const testee = "2006-01-02T15:04:05Z07:00"
+const rfc3339Testee = "2006-01-02T15:04:05Z07:00"
 
-var global map[string]string
+var (
+	globalMap    map[string]string
+	globalString string
+)
 
 // find:
 // tz, date, year, month, day, time, hour, min, sec
@@ -72,8 +75,8 @@ func Benchmark_logrusorgru_grokky_rfc3339(b *testing.B) {
 	}
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		mss := p.Parse(testee)
-		global = mss
+		mss := p.Parse(rfc3339Testee)
+		globalMap = mss
 	}
 	b.ReportAllocs()
 }
@@ -119,7 +122,7 @@ func Benchmark_vjeantet_grok_rfc3339(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		if global, err = h.Parse("%{MAIN}", testee); err != nil {
+		if globalMap, err = h.Parse("%{MAIN}", rfc3339Testee); err != nil {
 			b.Skip("parsing error:", err)
 		}
 	}
@@ -394,11 +397,140 @@ func Benchmark_simpleNginxAccessLog(b *testing.B) {
 
 	b.StartTimer()
 	for i := 0; i < b.N; i++ {
-		global = nginx.Parse(lines[i%len(lines)])
-		if len(global) != 12 {
-			b.Fatal(global)
+		globalMap = nginx.Parse(lines[i%len(lines)])
+		if len(globalMap) != 12 {
+			b.Fatal(globalMap)
 		}
 	}
 
 	b.ReportAllocs()
+}
+
+// don't create map
+//
+//
+// map-4      200000    9980 ns/op    1370 B/op    5 allocs/op
+// slice-4    200000    7508 ns/op     416 B/op    2 allocs/op
+//
+func Benchmark_parse_vs_findStringSubmatch(b *testing.B) {
+
+	b.StopTimer()
+
+	h := New()
+
+	h.Must("NSS", `[^\s]*`) // not a space *
+	h.Must("NS", `[^\s]+`)  // not a space +
+	h.Must("NLB", `[^\]]+`) // not a left bracket +
+	h.Must("NQS", `[^"]*`)  // not a quote *
+	h.Must("NQ", `[^"]+`)   // not a double quotes +
+	h.Must("A", `.*`)       // all
+	h.Must("nginx", `%{NS:clientip}\s%{NSS:ident}\s%{NSS:auth}`+
+		`\s\[`+
+		`%{NLB:timestamp}\]\s\"`+
+		`%{NS:verb}\s`+
+		`%{NSS:request}\s`+
+		`HTTP/%{NS:httpversion}\"\s`+
+		`%{NS:response}\s`+
+		`%{NS:bytes}\s\"`+
+		`%{NQ:referrer}\"\s\"`+
+		`%{NQ:agent}\"`+
+		`%{A:blob}`)
+
+	nginx, err := h.Get("nginx")
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	lines := []string{
+		`66.249.65.159 - - [06/Nov/2014:19:10:38 +0600] ` +
+			`"GET /news/53f8d72920ba2744fe873ebc.html HTTP/1.1" ` +
+			`404 177 "-" ` +
+			`"Mozilla/5.0 (iPhone; CPU iPhone OS 6_0 like Mac OS X)` +
+			` AppleWebKit/536.26 (KHTML, like Gecko) Version/6.0` +
+			` Mobile/10A5376e Safari/8536.25 (compatible; Googlebot/2.1;` +
+			` +http://www.google.com/bot.html)"`,
+		`66.249.65.3 - - [06/Nov/2014:19:11:24 +0600] ` +
+			`"GET /?q=%E0%A6%AB%E0%A6%BE%E0%A7%9F%E0%A6%BE%E0%A6%B0 ` +
+			`HTTP/1.1" ` +
+			`200 4223 "-" ` +
+			`"Mozilla/5.0 (compatible; Googlebot/2.1; ` +
+			`+http://www.google.com/bot.html)"`,
+		`66.249.65.62 - - [06/Nov/2014:19:12:14 +0600] ` +
+			`"GET /?q=%E0%A6%A6%E0%A7%8B%E0%A7%9F%E0%A6%BE HTTP/1.1" ` +
+			`200 4356 "-" ` +
+			`"Mozilla/5.0 (compatible; Googlebot/2.1; ` +
+			`+http://www.google.com/bot.html)"`,
+	}
+
+	b.Run("map", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var vals = nginx.Parse(lines[i%len(lines)])
+			globalString = vals["clientip"]
+			globalString = vals["ident"]
+			globalString = vals["auth"]
+			globalString = vals["timestamp"]
+			globalString = vals["verb"]
+			globalString = vals["request"]
+			globalString = vals["httpversion"]
+			globalString = vals["response"]
+			globalString = vals["bytes"]
+			globalString = vals["referrer"]
+			globalString = vals["agent"]
+			globalString = vals["blob"]
+			/*
+				b.Log("clientip:", vals["clientip"])
+				b.Log("ident:", vals["ident"])
+				b.Log("auth:", vals["auth"])
+				b.Log("timestamp:", vals["timestamp"])
+				b.Log("verb:", vals["verb"])
+				b.Log("request:", vals["request"])
+				b.Log("httpversion:", vals["httpversion"])
+				b.Log("response:", vals["response"])
+				b.Log("bytes:", vals["bytes"])
+				b.Log("referrer:", vals["referrer"])
+				b.Log("agent:", vals["agent"])
+				b.Log("blob:", vals["blob"])
+				b.Fatal("test fatal")
+			*/
+		}
+		b.ReportAllocs()
+	})
+
+	b.Run("slice", func(b *testing.B) {
+		for i := 0; i < b.N; i++ {
+			var vals = nginx.FindStringSubmatch(lines[i%len(lines)])
+			if len(vals) < 13 {
+				b.Fatal("shot input")
+			}
+			globalString = vals[1]
+			globalString = vals[2]
+			globalString = vals[3]
+			globalString = vals[4]
+			globalString = vals[5]
+			globalString = vals[6]
+			globalString = vals[7]
+			globalString = vals[8]
+			globalString = vals[9]
+			globalString = vals[10]
+			globalString = vals[11]
+			globalString = vals[12]
+			/*
+				b.Log("clientip:", vals[1])
+				b.Log("ident:", vals[2])
+				b.Log("auth:", vals[3])
+				b.Log("timestamp:", vals[4])
+				b.Log("verb:", vals[5])
+				b.Log("request:", vals[6])
+				b.Log("httpversion:", vals[7])
+				b.Log("response:", vals[8])
+				b.Log("bytes:", vals[9])
+				b.Log("referrer:", vals[10])
+				b.Log("agent:", vals[11])
+				b.Log("blob:", vals[12])
+				b.Fatal("test fatal")
+			*/
+		}
+		b.ReportAllocs()
+	})
+
 }
