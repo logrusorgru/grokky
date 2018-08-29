@@ -129,11 +129,14 @@ func Benchmark_vjeantet_grok_rfc3339(b *testing.B) {
 // go test -v -run the_difference
 
 func Test_the_difference(t *testing.T) {
+
 	t.Log(`show the difference between logrusorgru/grokky and vjeantet/grok
 pattern '%{NUM:one} %{NUMBERS}'
   where NUMBERS is '%{NUM:one} %{NUM:two}'
     and NUM     is '\d' (single number)
 Input is: '1 2 3'`)
+
+	const input = "1 2 3"
 
 	t.Run("logrusorgru/grokky", func(t *testing.T) {
 		h := New()
@@ -144,7 +147,7 @@ Input is: '1 2 3'`)
 		if err != nil {
 			t.Fatal(err)
 		}
-		t.Log("result is:", p.Parse("1 2 3"))
+		t.Log("result is:", p.Parse(input))
 	})
 
 	t.Run("vjeantet/grok", func(t *testing.T) {
@@ -158,12 +161,26 @@ Input is: '1 2 3'`)
 		h.AddPattern("NUM", `\d`)
 		h.AddPattern("NUMBERS", "%{NUM:one} %{NUM:two}")
 		h.AddPattern("RES", "%{NUM:one} %{NUMBERS}")
-		mss, err := h.Parse("%{RES}", "1 2 3")
+		mss, err := h.Parse("%{RES}", input)
 		if err != nil {
 			t.Fatal(err)
 		}
 		t.Log("result is:", mss)
 	})
+
+	// Input is "1 2 3", output of this test:
+	//
+	// --- PASS: Test_the_difference/logrusorgru/grokky (0.00s)
+	//     bench_test.go:147: result is: map[one:1 two:3]
+	// --- PASS: Test_the_difference/vjeantet/grok (0.00s)
+	//     bench_test.go:165: result is: map[one:2 two:3]
+	//
+
+	// E.g. for pattern %{one:\d %{one: \d, two: \d}},
+	// grokky matches 1 and 3 (closer to top, sicne the
+	// second "one" is nested), and the grok returns
+	// 2 and 3 (closer to tail), and nesting level doesn't
+	// matter.
 
 }
 
