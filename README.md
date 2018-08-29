@@ -13,7 +13,8 @@ help you to parse log files and other. This is based on
 regexp that
 [much more faster](https://swtch.com/~rsc/regexp/regexp1.html)
 than
-[Oniguruma](https://en.wikipedia.org/wiki/Oniguruma).
+[Oniguruma](https://en.wikipedia.org/wiki/Oniguruma) in some cases.
+Check out the "much more faster" article to understand the difference.
 
 The library was disigned for creating many patterns and using it many
 times. The behavior and capabilities are slightly different from the
@@ -24,9 +25,11 @@ original library. The goals of the library are:
 
 # Also
 
-See also another golang implementation:
-[vjeantet/grok](https://github.com/vjeantet/grok). This implementation
-is closer to the original library.
+See also another golang implementation
+[vjeantet/grok](https://github.com/vjeantet/grok) that
+is closer to the
+[original](https://www.elastic.co/guide/en/logstash/current/plugins-filters-grok.html)
+library.
 
 The difference:
 
@@ -37,16 +40,17 @@ The difference:
   created as `g, err :=
   grok.NewWithConfig(&grok.Config{NamedCapturesOnly: true})`.
 
-2. The grokky prefered top named group. Unfortunately it is very
-  difficult to explain what it means. If you have two patterns. The
-  second pattern has same named group and nested into first. Then the
-  named group of the first pattern will be used. The grok uses last
+2. The grokky prefered top named group. If you have two patterns. And
+  the second pattern has same named group and nested into first. Then
+  the named group of the first pattern will be used. The grok uses last
   (closer to tail) group in any cases. But the grok also has
   `ParseToMultiMap` method. To see the difference explanation get the
-  package and run following command `go test -v -run the_difference
-  github.com/logrusorgru/grokky`
+  package (using `go get -t`) and run the following command
+  `go test -v -run the_difference github.com/logrusorgru/grokky`. Or check
+  out [source code of the test](https://github.com/logrusorgru/grokky/blob/master/bench_test.go#L131).
 
-3. The grokky was designed as a factory of patterns.
+3. The grokky was designed as a factory of patterns. E.g. compile once and use
+  many times.
 
 # Get it
 
@@ -179,7 +183,7 @@ h.Must("nginx", `%{NS:clientip}\s%{NSS:ident}\s%{NSS:auth}`+
 
 # Licensing
 
-Copyright © 2016-2017 Konstantin Ivanov <kostyarin.ivanov@gmail.com>  
+Copyright © 2016-2018 Konstantin Ivanov <kostyarin.ivanov@gmail.com>  
 This work is free. It comes without any warranty, to the extent
 permitted by applicable law. You can redistribute it and/or modify
 it under the terms of the Do What The Fuck You Want To Public License,
