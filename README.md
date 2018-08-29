@@ -192,7 +192,7 @@ for example instead of `(grokky.Pattern).Parse`. Or any other method of
 the `regexp.Regexp`.
 
 Check out
-[Benchmark_parse_vs_findStringSubmatch](https://github.com/logrusorgru/grokky/blob/master/bench_test.go#409)
+[Benchmark_parse_vs_findStringSubmatch](https://github.com/logrusorgru/grokky/blob/master/bench_test.go#L409)
 for example.
 
 For my machine result of this becnhmark is (the map is `Parse`, and the slice is
