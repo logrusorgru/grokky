@@ -39,7 +39,8 @@ import (
 	"fmt"
 	"os"
 	"regexp"
-	"strings"
+
+	"github.com/wasilibs/go-re2"
 )
 
 var patternRegexp = regexp.MustCompile(`\%\{(\w+)(\:(\w+))?}`)
@@ -55,30 +56,20 @@ var (
 	ErrNotExist = errors.New("pattern doesn't exist")
 )
 
-// helpers
-
-func split(s string) (name, sem string) {
-	ss := patternRegexp.FindStringSubmatch(s)
-	if len(ss) >= 2 {
-		name = ss[1]
-	}
-	if len(ss) >= 4 {
-		sem = ss[3]
-	}
-	return
-}
-
-func wrap(s string) string { return "(" + s + ")" }
-
-// host
-
 // Host is a patterns collection. Feel free to
 // delete the Host after all patterns (that you need)
 // are created. Think of it as a kind of factory.
-type Host map[string]string
+type Host struct {
+	Patterns map[string]string
+	UseRe2   bool
+}
 
 // New returns new empty host
-func New() Host { return make(Host) }
+func New() Host {
+	return Host{
+		Patterns: make(map[string]string),
+	}
+}
 
 // Add a new pattern to the Host. If pattern with given name
 // already exists the ErrAlreadyExists will be retuned.
@@ -89,25 +80,36 @@ func (h Host) Add(name, expr string) error {
 	if expr == "" {
 		return ErrEmptyExpression
 	}
-	if _, ok := h[name]; ok {
+	if _, ok := h.Patterns[name]; ok {
 		return ErrAlreadyExist
 	}
-	if _, err := h.compileExternal(expr); err != nil {
-		return err
+	if h.UseRe2 {
+		if _, err := h.compileExternalRe2(expr); err != nil {
+			return err
+		}
+	} else {
+		if _, err := h.compileExternal(expr); err != nil {
+			return err
+		}
 	}
-	h[name] = expr
+	h.Patterns[name] = expr
 	return nil
 }
 
-func (h Host) compile(name string) (*Pattern, error) {
-	expr, ok := h[name]
+func (h Host) compile(name string) (Pattern, error) {
+	expr, ok := h.Patterns[name]
 	if !ok {
 		return nil, ErrNotExist
 	}
-	return h.compileExternal(expr)
+	if h.UseRe2 {
+		return h.compileExternalRe2(expr)
+	} else {
+		return h.compileExternal(expr)
+	}
 }
 
-func (h Host) compileExternal(expr string) (*Pattern, error) {
+func (h Host) compileExternal(expr string) (*PatternLegacy, error) {
+
 	// find subpatterns
 	subs := patternRegexp.FindAllString(expr, -1)
 	// this semantics set
@@ -115,7 +117,7 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 	// chek: does subpatterns exist into this Host?
 	for _, s := range subs {
 		name, sem := split(s)
-		if _, ok := h[name]; !ok {
+		if _, ok := h.Patterns[name]; !ok {
 			return nil, fmt.Errorf("the '%s' pattern doesn't exist", name)
 		}
 		ts[sem] = struct{}{}
@@ -126,8 +128,7 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 		if err != nil {
 			return nil, err
 		}
-		p := &Pattern{Regexp: r}
-		return p, nil
+		return &PatternLegacy{Regexp: r}, nil
 	}
 	// split
 	spl := patternRegexp.Split(expr, -1)
@@ -146,8 +147,9 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 		if err != nil {
 			return nil, err
 		}
-		sub = p.String()
-		subNumSubexp := p.NumSubexp()
+		pattern := p.(*PatternLegacy)
+		sub = pattern.String()
+		subNumSubexp := pattern.NumSubexp()
 		subNumSubexp++
 		sub = wrap(sub)
 		if subSem != "" {
@@ -155,7 +157,7 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 		}
 		res += splPart + sub
 		// add sub semantics to this semantics
-		for k, v := range p.s {
+		for k, v := range pattern.s {
 			if _, ok := ts[k]; !ok {
 				msi[k] = order + v
 			}
@@ -168,51 +170,93 @@ func (h Host) compileExternal(expr string) (*Pattern, error) {
 	if err != nil {
 		return nil, err
 	}
-	p := &Pattern{Regexp: r}
+	p := &PatternLegacy{Regexp: r}
+	p.s = msi
+	return p, nil
+}
+
+func (h Host) compileExternalRe2(expr string) (*PatternRe2, error) {
+
+	// find subpatterns
+	subs := patternRegexp.FindAllString(expr, -1)
+	// this semantics set
+	ts := make(map[string]struct{})
+	// chek: does subpatterns exist into this Host?
+	for _, s := range subs {
+		name, sem := split(s)
+		if _, ok := h.Patterns[name]; !ok {
+			return nil, fmt.Errorf("the '%s' pattern doesn't exist", name)
+		}
+		ts[sem] = struct{}{}
+	}
+	// if there are not subpatterns
+	if len(subs) == 0 {
+		r, err := re2.Compile(expr)
+		if err != nil {
+			return nil, err
+		}
+		return &PatternRe2{Regexp: r}, nil
+	}
+	// split
+	spl := patternRegexp.Split(expr, -1)
+	// concat it back
+	msi := make(map[string]int)
+	order := 1 // semantic order
+	var res string
+	for i := 0; i < len(spl)-1; i++ {
+		// split part
+		splPart := spl[i]
+		order += capCount(splPart)
+		// subs part
+		sub := subs[i]
+		subName, subSem := split(sub)
+		p, err := h.compile(subName)
+		if err != nil {
+			return nil, err
+		}
+		pattern := p.(*PatternRe2)
+		sub = pattern.String()
+		subNumSubexp := pattern.NumSubexp()
+		subNumSubexp++
+		sub = wrap(sub)
+		if subSem != "" {
+			msi[subSem] = order
+		}
+		res += splPart + sub
+		// add sub semantics to this semantics
+		for k, v := range pattern.s {
+			if _, ok := ts[k]; !ok {
+				msi[k] = order + v
+			}
+		}
+		// increse the order
+		order += subNumSubexp
+	} // last spl
+	res += spl[len(spl)-1]
+	r, err := re2.Compile(res)
+	if err != nil {
+		return nil, err
+	}
+	p := &PatternRe2{Regexp: r}
 	p.s = msi
 	return p, nil
 }
 
 // Get pattern by name from the Host
-func (h Host) Get(name string) (*Pattern, error) {
+func (h Host) Get(name string) (Pattern, error) {
 	return h.compile(name)
 }
 
 // Compile and get pattern without name (and without adding it to this Host)
-func (h Host) Compile(expr string) (*Pattern, error) {
+func (h Host) Compile(expr string) (Pattern, error) {
 	if expr == "" {
 		return nil, ErrEmptyExpression
 	}
-	return h.compileExternal(expr)
-}
-
-// Pattern is a pattern.
-// Feel free to use the Pattern as regexp.Regexp.
-type Pattern struct {
-	*regexp.Regexp
-	s map[string]int
-}
-
-// Parse returns map (name->match) on input. The map can be empty.
-func (p *Pattern) Parse(input string) map[string]string {
-	ss := p.FindStringSubmatch(input)
-	r := make(map[string]string)
-	if len(ss) <= 1 {
-		return r
+	if h.UseRe2 {
+		return h.compileExternalRe2(expr)
+	} else {
+		return h.compileExternal(expr)
 	}
-	for sem, order := range p.s {
-		r[sem] = ss[order]
-	}
-	return r
-}
-
-// Names returns all names that this pattern has
-func (p *Pattern) Names() (ss []string) {
-	ss = make([]string, 0, len(p.s))
-	for k := range p.s {
-		ss = append(ss, k)
-	}
-	return
 }
 
 var lineRegexp = regexp.MustCompile(`^(\w+)\s+(.+)$`)
@@ -242,20 +286,4 @@ func (h Host) AddFromFile(path string) error {
 		return err
 	}
 	return nil
-}
-
-// http://play.golang.org/p/1rPuziYhRL
-
-var (
-	nonCapLeftRxp  = regexp.MustCompile(`\(\?[imsU\-]*\:`)
-	nonCapFlagsRxp = regexp.MustCompile(`\(?[imsU\-]+\)`)
-)
-
-// cap count
-func capCount(in string) int {
-	leftParens := strings.Count(in, "(")
-	nonCapLeft := len(nonCapLeftRxp.FindAllString(in, -1))
-	nonCapBoth := len(nonCapFlagsRxp.FindAllString(in, -1))
-	escapedLeftParens := strings.Count(in, `\(`)
-	return leftParens - nonCapLeft - nonCapBoth - escapedLeftParens
 }

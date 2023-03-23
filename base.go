@@ -40,7 +40,7 @@ func (h Host) Must(name, expr string) {
 // NewBase creates new Host that filled up with base patterns.
 // To see all base patterns open 'base.go' file.
 func NewBase() Host {
-	h := make(Host)
+	h := Host{Patterns: make(map[string]string)}
 	//
 	h.Must("USERNAME", `[a-zA-Z0-9._-]+`)
 	h.Must("USER", `%{USERNAME}`)

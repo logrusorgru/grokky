@@ -1,0 +1,8 @@
+github.com/magefile/mage v1.14.0 h1:6QDX3g6z1YvJ4olPhT1wksUcSa/V0a1B+pJb73fBjyo=
+github.com/magefile/mage v1.14.0/go.mod h1:z5UZb/iS3GoOSn0JgWuiw7dxlurVYTu+/jHXqQg881A=
+github.com/tetratelabs/wazero v1.0.0-pre.5 h1:ChZsQewsazFwF+NT6qAKPwnqqiOlf2MN0aah1dlD8Bk=
+github.com/tetratelabs/wazero v1.0.0-pre.5/go.mod h1:u8wrFmpdrykiFK0DFPiFm5a4+0RzsdmXYVtijBKqUVo=
+github.com/vjeantet/grok v1.0.1 h1:2rhIR7J4gThTgcZ1m2JY4TrJZNgjn985U28kT2wQrJ4=
+github.com/vjeantet/grok v1.0.1/go.mod h1:ax1aAchzC6/QMXMcyzHQGZWaW1l195+uMYIkCWPCNIo=
+github.com/wasilibs/go-re2 v0.1.0 h1:+pcjlvge6E9WWU4eaMlULRikEUkhPDXSFfCF5p7htMI=
+github.com/wasilibs/go-re2 v0.1.0/go.mod h1:F91Yac+zPNDFrrd8fl4mSd7+TTu2tYiX56BEIEPQl2M=

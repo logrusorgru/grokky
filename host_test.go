@@ -41,57 +41,54 @@ const (
 
 func TestNew(t *testing.T) {
 	h := New()
-	if len(h) != 0 {
+	if len(h.Patterns) != 0 {
 		t.Error("New returns non-empty host")
-	}
-	if h == nil {
-		t.Error("New returns nil")
 	}
 }
 
 func testEmptyName(t *testing.T, h Host) {
-	l := len(h)
+	l := len(h.Patterns)
 	if err := h.Add("", "expr"); err == nil {
 		t.Error("(Host).Add is missing ErrEmptyName")
 	} else if err != ErrEmptyName {
 		t.Error("(Host).Add returns non-ErrEmptyName error")
 	}
-	if len(h) > l {
+	if len(h.Patterns) > l {
 		t.Error("added bad patterns")
 	}
 }
 
 func testEmptyExpression(t *testing.T, h Host) {
-	l := len(h)
+	l := len(h.Patterns)
 	if err := h.Add("zorro", ""); err == nil {
 		t.Error("(Host).Add is missing ErrEmptyExpression")
 	} else if err != ErrEmptyExpression {
 		t.Error("(Host).Add returns non-ErrEmptyExpression error")
 	}
-	if len(h) > l {
+	if len(h.Patterns) > l {
 		t.Error("added bad patterns")
 	}
 }
 
 func testNormalPattern(t *testing.T, h Host) {
-	l := len(h)
+	l := len(h.Patterns)
 	if err := h.Add("DIGIT", `\d`); err != nil {
 		t.Errorf("(Host).Add returns non-nil error: %v", err)
 	}
-	if len(h) != l+1 {
+	if len(h.Patterns) != l+1 {
 		t.Error("wrong patterns count")
 	}
 }
 
 // must be invoked direct after testNormalPattern
 func testAlreadyExists(t *testing.T, h Host) {
-	l := len(h)
+	l := len(h.Patterns)
 	if err := h.Add("DIGIT", `[+-](0x)?\d`); err == nil {
 		t.Error("(Host).Add is missing ErrAlreadyExist")
 	} else if err != ErrAlreadyExist {
 		t.Error("(Host).Add returns non-ErrAlreadyExist error")
 	}
-	if len(h) != l {
+	if len(h.Patterns) != l {
 		t.Error("wrong patterns count")
 	}
 }
@@ -105,37 +102,37 @@ func TestHost_Add(t *testing.T) {
 	if err := h.Add("BAD", `(?![0-5])`); err == nil {
 		t.Error("(Host).Add is missing any bad-regexp error")
 	}
-	if len(h) != 1 {
+	if len(h.Patterns) != 1 {
 		t.Error("wrong patterns count")
 	}
 	if err := h.Add("TWODIG", `%{DIGIT}-%{DIGIT}`); err != nil {
 		t.Errorf("(Host).Add returns non-nil error: %v", err)
 	}
-	if len(h) != 2 {
+	if len(h.Patterns) != 2 {
 		t.Error("wrong patterns count")
 	}
 	if err := h.Add("THREE", `%{NOT}-%{EXIST}`); err == nil {
 		t.Errorf("(Host).Add is missing the-pattern-not-exist error")
 	}
-	if len(h) != 2 {
+	if len(h.Patterns) != 2 {
 		t.Error("wrong patterns count")
 	}
 	if err := h.Add("FOUR", `%{DIGIT:one}-%{DIGIT:two}`); err != nil {
 		t.Errorf("(Host).Add returns non-nil error: %v", err)
 	}
-	if len(h) != 3 {
+	if len(h.Patterns) != 3 {
 		t.Error("wrong patterns count")
 	}
 	if err := h.Add("FIVE", `(?!\d)%{DIGIT}(?!\d)`); err == nil {
 		t.Errorf("(Host).Add is missing an error of regexp")
 	}
-	if len(h) != 3 {
+	if len(h.Patterns) != 3 {
 		t.Error("wrong patterns count")
 	}
 	if err := h.Add("SIX", `%{FOUR:four}-%{DIGIT:six}`); err != nil {
 		t.Errorf("(Host).Add returns non-nil error")
 	}
-	if len(h) != 4 {
+	if len(h.Patterns) != 4 {
 		t.Error("wrong patterns count")
 	}
 }
@@ -147,7 +144,7 @@ func TestHost_Compile(t *testing.T) {
 	} else if err != ErrEmptyExpression {
 		t.Error("(Host).Compile returns non-ErrEmptyExpression error")
 	}
-	if len(h) != 0 {
+	if len(h.Patterns) != 0 {
 		t.Error("(Host).Compile: (bad) pattern added to host")
 	}
 	if p, err := h.Compile(`\d+`); err != nil {
@@ -155,7 +152,7 @@ func TestHost_Compile(t *testing.T) {
 	} else if p == nil {
 		t.Error("(Host).Compile returns nil (and no errors)")
 	}
-	if len(h) != 0 {
+	if len(h.Patterns) != 0 {
 		t.Error("(Host).Compile: pattern added to host")
 	}
 }
@@ -196,7 +193,7 @@ func TestHost_AddFromFile(t *testing.T) {
 	if err := h.AddFromFile(patternsTest); err != nil {
 		t.Error(err)
 	}
-	if len(h) != 3 {
+	if len(h.Patterns) != 3 {
 		t.Error("wrong patterns count")
 	}
 	if _, err := h.Get("ONE"); err != nil {
@@ -229,7 +226,7 @@ func TestHost_AddFromFile_scannerError(t *testing.T) {
 
 func TestHost_inject(t *testing.T) {
 	h := New()
-	h["TWO"] = `(?!\d)`
+	h.Patterns["TWO"] = `(?!\d)`
 	if err := h.Add("ONE", `%{TWO:one}`); err == nil {
 		t.Error("bad injection returns nil error")
 	}
