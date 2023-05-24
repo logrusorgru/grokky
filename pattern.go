@@ -6,4 +6,5 @@ type Pattern interface {
 	Names() []string
 	Parse(input string) map[string]string
 	NumSubexp() int
+	Match([]byte) bool
 }
