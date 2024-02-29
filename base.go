@@ -120,7 +120,7 @@ func NewBase() Host {
 	h.Must("DATESTAMP_EVENTLOG", `%{YEAR}%{MONTHNUM2}%{MONTHDAY}%{HOUR}%{MINUTE}%{SECOND}`)
 	h.Must("HTTPDERROR_DATE", `%{DAY} %{MONTH} %{MONTHDAY} %{TIME} %{YEAR}`)
 	// golang time patterns
-	h.Must("ANSIC", `%{DAY} %{MONTH} [_123]\d %{TIME} %{YEAR}"`)
+	h.Must("ANSIC", `%{DAY} %{MONTH} [_123]\d %{TIME} %{YEAR}`)
 	h.Must("UNIXDATE", `%{DAY} %{MONTH} [_123]\d %{TIME} %{TZ} %{YEAR}`)
 	h.Must("RUBYDATE", `%{DAY} %{MONTH} [0-3]\d %{TIME} %{NUMTZ} %{YEAR}`)
 	h.Must("RFC822Z", `[0-3]\d %{MONTH} %{YEAR} %{TIME} %{NUMTZ}`)
